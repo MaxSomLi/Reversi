@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<title>Reversi</title>
+<canvas id="canvas" width="800" height="800"></canvas>
+<script>
+    const can = document.getElementById("canvas"), ctx = can.getContext("2d"), WORST = -65, WHITE = 1, BLACK = 2, COUNT = 8, SIZE = 800, RADIUS = 20, CIRCLE = 2 * Math.PI, START = 50, DIST = 100, D = 1, LAST = 7;
+    ctx.lineWidth = 3;
+    let state = [
+        [0, 0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 1, 2, 0, 0, 0],
+        [0, 0, 0, 2, 1, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0]
+    ], player = true;
+
+    drawEverything();
+    can.addEventListener("mousedown", (event) => {
+        let x = (event.clientX / DIST) >> 0, y = (event.clientY / DIST) >> 0;
+        if (player && makeMove(state, true, y, x)) {
+            player = false;
+            drawEverything();
+            bestMove(state, false);
+            drawEverything();
+            player = true;
+        }
+    });
+
+    function drawEverything() {
+        ctx.clearRect(0, 0, SIZE, SIZE);
+        for (let i = 0; i < COUNT; i++) {
+            for (let j = 0; j < COUNT; j++) {
+                ctx.strokeRect(j * DIST, i * DIST, DIST, DIST);
+                if (state[i][j] > 0) {
+                    ctx.beginPath();
+                    ctx.arc(START + j * DIST, START + i * DIST, RADIUS, 0, CIRCLE);
+                    if (state[i][j] == WHITE) {
+                        ctx.stroke();
+                    } else {
+                        ctx.fill();
+                    }
+                }
+            }
+        }
+    }
+
+    function bestMove(currState, currPlayer) {
+        let bestDiff = WORST, bestY, bestX;
+        for (let i = 0; i < COUNT; i++) {
+            for (let j = 0; j < COUNT; j++) {
+                let arr = [];
+                for (let t = 0; t < COUNT; t++) {
+                    let h = [];
+                    for (let k = 0; k < COUNT; k++) {
+                        h.push(currState[t][k]);
+                    }
+                    arr.push(h);
+                }
+                if (makeMove(arr, currPlayer, i, j)) {
+                    let h = eval(arr, currPlayer);
+                    if (h > bestDiff) {
+                        bestDiff = h;
+                        bestX = j;
+                        bestY = i;
+                    }
+                }
+            }
+        }
+        makeMove(currState, currPlayer, bestY, bestX);
+    }
+
+    function eval(currState, currPlayer) {
+        let same = BLACK, different = WHITE, diff = 0, flag = true;
+        if (currPlayer) {
+            same = WHITE;
+            different = BLACK;
+        }
+        for (let i = 0; i < COUNT; i++) {
+            for (let j = 0; j < COUNT; j++) {
+                if (currState[i][j] == same) {
+                    diff++;
+                } else if (currState[i][j] == different) {
+                    diff--;
+                } else {
+                    flag = false;
+                }
+            }
+        }
+        if (flag) {
+            let arr = [];
+            for (let i = 0; i < COUNT; i++) {
+                let h = [];
+                for (let j = 0; j < COUNT; j++) {
+                    h.push(currState[i][j]);
+                }
+                arr.push(h);
+            }
+            bestMove(arr, currPlayer);
+            return -eval(arr, !currPlayer);
+        }
+        return diff;
+    }
+
+    function makeMove(currState, currPlayer, y, x) {
+        if (currState[y][x] > 0) {
+            return false;
+        }
+        let same = BLACK, different = WHITE;
+        if (currPlayer) {
+            same = WHITE;
+            different = BLACK;
+        }
+        let flag = false, f = false;
+        let k = y - D;
+        while (k > 0 && currState[k][x] == different) {
+            k--;
+            f = true;
+        }
+        if (k >= 0 && f && currState[k][x] == same) {
+            flag = true;
+            k++;
+            while (k < y) {
+                currState[k][x] = same;
+                k++;
+            }
+        }
+        k = y + D;
+        f = false;
+        while (k < LAST && currState[k][x] == different) {
+            k++;
+            f = true;
+        }
+        if (k < COUNT && f && currState[k][x] == same) {
+            flag = true;
+            k--;
+            while (k > y) {
+                currState[k][x] = same;
+                k--;
+            }
+        }
+        let t = x - D;
+        f = false;
+        while (t > 0 && currState[y][t] == different) {
+            t--;
+            f = true;
+        }
+        if (t >= 0 && f && currState[y][t] == same) {
+            flag = true;
+            t++;
+            while (t < x) {
+                currState[y][t] = same;
+                t++;
+            }
+        }
+        t = x + D;
+        f = false;
+        while (t < LAST && currState[y][t] == different) {
+            t++;
+            f = true;
+        }
+        if (t < COUNT && f && currState[y][t] == same) {
+            flag = true;
+            t--;
+            while (t > x) {
+                currState[y][t] = same;
+                t--;
+            }
+        }
+        k = y + D;
+        t = x + D;
+        f = false;
+        while (t < LAST && k < LAST && currState[k][t] == different) {
+            t++;
+            k++;
+            f = true;
+        }
+        if (t < COUNT && k < COUNT && f && currState[k][t] == same) {
+            flag = true;
+            t--;
+            k--;
+            while (t > x) {
+                currState[k][t] = same;
+                t--;
+                k--;
+            }
+        }
+        k = y - D;
+        t = x - D;
+        f = false;
+        while (t > 0 && k > 0 && currState[k][t] == different) {
+            t--;
+            k--;
+            f = true;
+        }
+        if (t >= 0 && k >= 0 && f && currState[k][t] == same) {
+            flag = true;
+            t++;
+            k++;
+            while (t < x) {
+                currState[k][t] = same;
+                t++;
+                k++;
+            }
+        }
+        k = y - D;
+        t = x + D;
+        f = false;
+        while (t < LAST && k > 0 && currState[k][t] == different) {
+            t++;
+            k--;
+            f = true;
+        }
+        if (t < COUNT && k >= 0 && f && currState[k][t] == same) {
+            flag = true;
+            t--;
+            k++;
+            while (t > x) {
+                currState[k][t] = same;
+                t--;
+                k++;
+            }
+        }
+        k = y + D;
+        t = x - D;
+        f = false;
+        while (k < LAST && t > 0 && currState[k][t] == different) {
+            t--;
+            k++;
+            f = true;
+        }
+        if (k < COUNT && t >= 0 && f && currState[k][t] == same) {
+            flag = true;
+            t++;
+            k--;
+            while (t < x) {
+                currState[k][t] = same;
+                t++;
+                k--;
+            }
+        }
+        if (flag) {
+            currState[y][x] = same;
+        }
+        return flag;
+    }
+</script>
